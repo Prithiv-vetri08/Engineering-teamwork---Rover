@@ -1,5 +1,12 @@
 # Engineering-teamwork---Rover
 
+Team members - 
+Mustafa Dalal - 3120480, 
+Prithiv Ramvasan Vetri Selvan - 3121993, 
+Mohammed Abubakr Khan - 3121514
+Munjal
+Adwait
+
 Objectives: 
 
 •The main objective of this project is to deliver the packet/parcel to the respective customer.
