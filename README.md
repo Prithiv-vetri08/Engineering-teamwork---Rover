@@ -4,8 +4,8 @@ Team members -
 Mustafa Dalal - 3120480, 
 Prithiv Ramvasan Vetri Selvan - 3121993, 
 Mohammed Abubakr Khan - 3121514
-Munjal
-Adwait
+Munjalsinh Zala - 3122205
+Adwait Khaladkar - 3121887
 
 Objectives: 
 
