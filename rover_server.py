@@ -14,10 +14,11 @@ HTML = """
 <html>
 <head>
     <title>Rover Control + Live Stream</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body style="text-align:center; font-family:sans-serif; background:#f0f0f0;">
     <h1>📷 Live Rover Camera</h1>
-    <img src="/video" style="border:2px solid #ccc; width:90%; max-width:500px;" />
+    <img src="/video" style="max-width:100%; height:auto; display:block; margin:auto; border:2px solid #ccc;" />
     <form action="/start" method="post">
         <button type="submit" style="padding:10px 20px; margin:10px; font-size:16px;">▶ Start</button>
     </form>
