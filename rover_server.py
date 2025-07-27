@@ -1,49 +1,62 @@
-from flask import Flask, render_template_string
-import os
+from flask import Flask, render_template_string, Response
+import cv2
 
 app = Flask(__name__)
 
-# Simple HTML with buttons and video
-HTML_PAGE = """
+# Start video capture (0 = default USB webcam)
+cap = cv2.VideoCapture(0)
+
+# If you're using the Pi Camera Module (with libcamera), use:
+# cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
+
+HTML = """
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Rover Control</title>
-  <style>
-    body { font-family: sans-serif; text-align: center; background: #f5f5f5; }
-    button { padding: 12px 24px; margin: 10px; font-size: 16px; }
-    #video { border: 2px solid #ccc; border-radius: 10px; width: 90%; max-width: 480px; }
-  </style>
+    <title>Rover Control + Live Stream</title>
 </head>
-<body>
-  <h1>📦 Rover Control Panel</h1>
-  <img id="video" src="http://{{ ip }}:8080/?action=stream" alt="Webcam Feed" />
-  <div>
-    <form action="/start" method="post"><button type="submit" style="background:green;color:white;">Start</button></form>
-    <form action="/stop" method="post"><button type="submit" style="background:red;color:white;">Stop</button></form>
-  </div>
+<body style="text-align:center; font-family:sans-serif; background:#f0f0f0;">
+    <h1>📷 Live Rover Camera</h1>
+    <img src="/video" style="border:2px solid #ccc; width:90%; max-width:500px;" />
+    <form action="/start" method="post">
+        <button type="submit" style="padding:10px 20px; margin:10px; font-size:16px;">▶ Start</button>
+    </form>
+    <form action="/stop" method="post">
+        <button type="submit" style="padding:10px 20px; margin:10px; font-size:16px;">■ Stop</button>
+    </form>
 </body>
 </html>
 """
 
 @app.route("/")
 def index():
-    # Automatically uses the Pi's own IP
-    return render_template_string(HTML_PAGE, ip=os.popen("hostname -I").read().split()[0])
+    return render_template_string(HTML)
+
+def generate_frames():
+    while True:
+        success, frame = cap.read()
+        if not success:
+            break
+        _, buffer = cv2.imencode('.jpg', frame)
+        frame = buffer.tobytes()
+        yield (b'--frame\\r\\n'
+               b'Content-Type: image/jpeg\\r\\n\\r\\n' + frame + b'\\r\\n')
+
+@app.route("/video")
+def video():
+    return Response(generate_frames(),
+                    mimetype="multipart/x-mixed-replace; boundary=frame")
 
 @app.route("/start", methods=["POST"])
 def start_rover():
-    print("Rover started")
-    # You can add GPIO control here
-    return "Started. <a href='/'>Back</a>"
+    print("Rover started!")  # Add GPIO logic here
+    return "<h3>Rover Started</h3><a href='/'>Back</a>"
 
 @app.route("/stop", methods=["POST"])
 def stop_rover():
-    print("Rover stopped")
-    # You can add GPIO stop logic here
-    return "Stopped. <a href='/'>Back</a>"
+    print("Rover stopped!")  # Add GPIO logic here
+    return "<h3>Rover Stopped</h3><a href='/'>Back</a>"
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=80)
+    app.run(host="0.0.0.0", port=5000)
+
