@@ -11,23 +11,80 @@ cap = cv2.VideoCapture(0)
 
 HTML = """
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <title>Rover Control + Live Stream</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            background: #121212;
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+        .video-container {
+            border: 4px solid #444;
+            border-radius: 12px;
+            overflow: hidden;
+            max-width: 90vw;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+        }
+        img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .buttons {
+            display: flex;
+            gap: 20px;
+            margin-top: 30px;
+        }
+        button {
+            background: #1f1f1f;
+            color: #fff;
+            border: 2px solid #fff;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            background: #fff;
+            color: #121212;
+            border-color: #ccc;
+        }
+        a {
+            color: #fff;
+            text-decoration: underline;
+        }
+    </style>
 </head>
-<body style="text-align:center; font-family:sans-serif; background:#f0f0f0;">
+<body>
     <h1>📷 Live Rover Camera</h1>
-    <img src="/video" style="max-width:100%; height:auto; display:block; margin:auto; border:2px solid #ccc;" />
-    <form action="/start" method="post">
-        <button type="submit" style="padding:10px 20px; margin:10px; font-size:16px;">▶ Start</button>
-    </form>
-    <form action="/stop" method="post">
-        <button type="submit" style="padding:10px 20px; margin:10px; font-size:16px;">■ Stop</button>
-    </form>
+    <div class="video-container">
+        <img src="/video" alt="Rover Camera Stream" />
+    </div>
+    <div class="buttons">
+        <form action="/start" method="post">
+            <button type="submit">▶ Start Rover</button>
+        </form>
+        <form action="/stop" method="post">
+            <button type="submit">■ Stop Rover</button>
+        </form>
+    </div>
 </body>
 </html>
 """
+
 
 @app.route("/")
 def index():
