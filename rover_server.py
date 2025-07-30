@@ -4,7 +4,9 @@ from recognizer import start_recognition
 from flask import Flask, render_template_string, Response
 import cv2
 import push_notifications
-import threading
+import serial
+import time
+
 
 # Change to your dataset path
 DATASET_PATH = r"C:\Users\musta\OneDrive\Desktop\RasPi Codes\PHOTOS"
@@ -96,6 +98,12 @@ HTML = """
 </html>
 """
 
+def send_command(cmd):
+    with serial.Serial('/dev/ttyUSB0', 9600, timeout=1) as ser:
+        time.sleep(2)
+        ser.write((cmd + '\n').encode())
+
+
 
 @app.route("/")
 def index():
@@ -122,12 +130,16 @@ def video():
 @app.route("/start", methods=["POST"])
 def start_rover():
     print("Rover started!")  # Add GPIO logic here
+    send_command("START")
     push_notifications.send_email("Rover Alert", "Package on the way!!")
+
+    
     return ""
 
 @app.route("/stop", methods=["POST"])
 def stop_rover():
     print("Rover stopped!")  # Add GPIO logic here
+    send_command("STOP")
     return ""
 
 if __name__ == "__main__":
