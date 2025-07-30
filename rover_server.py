@@ -1,5 +1,16 @@
+from dataset_loader import load_dataset
+from trainer import train_recognizer
+from recognizer import start_recognition
 from flask import Flask, render_template_string, Response
 import cv2
+import push_notifications
+import threading
+
+# Change to your dataset path
+DATASET_PATH = r"C:\Users\musta\OneDrive\Desktop\RasPi Codes\PHOTOS"
+MODEL_PATH = "trained_model.yml"
+CAMERA_INDEX = 0  # Change if needed
+
 
 app = Flask(__name__)
 
@@ -111,12 +122,13 @@ def video():
 @app.route("/start", methods=["POST"])
 def start_rover():
     print("Rover started!")  # Add GPIO logic here
-    return "<h3>Rover Started</h3><a href='/'>Back</a>"
+    push_notifications.send_email("Rover Alert", "Package on the way!!")
+    return ""
 
 @app.route("/stop", methods=["POST"])
 def stop_rover():
     print("Rover stopped!")  # Add GPIO logic here
-    return "<h3>Rover Stopped</h3><a href='/'>Back</a>"
+    return ""
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
