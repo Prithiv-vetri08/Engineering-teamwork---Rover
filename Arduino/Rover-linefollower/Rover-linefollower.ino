@@ -3,9 +3,11 @@ const int IN1 = 10;  // Left motor IN1
 const int IN2 = 11;  // Left motor IN2
 const int IN3 = 12;  // Right motor IN3
 const int IN4 = 13;  // Right motor IN4
+const int ENA = 5;   // PWM pin for left motor
+const int ENB = 6;   // PWM pin for right motor
 
 // Working sensor pins: s1 to s4 and s6 to s8 (excluding s5 on pin 6)
-const int sensorPins[7] = {2, 3, 4, 5, 7, 8, 9};  // s1–s4, s6–s8
+const int sensorPins[7] = {A0, A1, A2, A3, A4, 2, 3};  // s1–s4, s6–s8
 int sensors[7];  // Stores readings from 7 working sensors
 
 void setup() {
