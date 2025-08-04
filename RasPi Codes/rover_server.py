@@ -1,28 +1,21 @@
-from dataset_loader import load_dataset
-from trainer import train_recognizer
-from recognizer import start_recognition
 from flask import Flask, render_template_string, Response
 import cv2
 import push_notifications
 import threading
-import serial  # For Arduino communication
+import serial
 import time
 
-# Arduino serial port (change COM3 to your port or /dev/ttyUSB0 on Linux)
+# Arduino serial port (change to your port if needed)
 arduino = serial.Serial('COM3', 9600, timeout=1)
 time.sleep(2)  # Allow Arduino to initialize
 
-# Change to your dataset path
-DATASET_PATH = r"D:\MECH\PYTHON\Engineering-teamwork---Rover\RasPi Codes\PHOTOS"
-MODEL_PATH = "trained_model.yml"
-CAMERA_INDEX = 0  # Change if needed
-
-app = Flask(__name__)
-
-# Start video capture (change index if needed)
+# Camera index (adjust if needed)
 cap = cv2.VideoCapture(2)
 
-# HTML Template with Rover status
+# Global rover status
+rover_status = "Checking..."
+
+# HTML page with 3 buttons and live video
 HTML = """
 <!DOCTYPE html>
 <html lang="en">
@@ -96,13 +89,15 @@ HTML = """
         <form action="/stop" method="post">
             <button type="submit">■ Stop Rover</button>
         </form>
+        <form action="/return" method="post">
+            <button type="submit">↩ Return to Station</button>
+        </form>
     </div>
 </body>
 </html>
 """
 
-# Global variable for rover status
-rover_status = "Checking..."
+app = Flask(__name__)
 
 @app.route("/")
 def index():
@@ -127,17 +122,24 @@ def video():
 @app.route("/start", methods=["POST"])
 def start_rover():
     print("Rover started!")
+    arduino.write(b'S')
     push_notifications.send_email("Rover Alert", "Package on the way!!")
-    arduino.write(b'S')  # Tell Arduino to start line following
     return ""
 
 @app.route("/stop", methods=["POST"])
 def stop_rover():
     print("Rover stopped!")
-    arduino.write(b'F')  # Tell Arduino to stop line following
+    arduino.write(b'F')
     return ""
 
-# Thread to continuously read from Arduino and update status
+@app.route("/return", methods=["POST"])
+def return_rover():
+    print("Rover returning to station...")
+    arduino.write(b'R')
+    push_notifications.send_email("Rover Alert", "Rover returning to base.")
+    return ""
+
+# Thread to listen for serial updates and update status
 def read_arduino():
     global rover_status
     while True:
@@ -148,7 +150,7 @@ def read_arduino():
             elif "ROVER EMPTY" in line:
                 rover_status = "EMPTY"
 
-# Start serial reading in background
+# Start background thread for status
 threading.Thread(target=read_arduino, daemon=True).start()
 
 if __name__ == "__main__":
