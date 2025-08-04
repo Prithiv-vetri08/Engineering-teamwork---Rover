@@ -1,17 +1,10 @@
-from dataset_loader import load_dataset
-from trainer import train_recognizer
-from recognizer import start_recognition
+
 from flask import Flask, render_template_string, Response
 import cv2
 import push_notifications
 import serial
 import time
 
-
-# Change to your dataset path
-DATASET_PATH = r"D:\MECH\PYTHON\Engineering-teamwork---Rover\RasPi Codes\PHOTOS"
-MODEL_PATH = "trained_model.yml"
-CAMERA_INDEX = 0  # Change if needed
 
 
 app = Flask(__name__)
@@ -70,16 +63,21 @@ HTML = """
             cursor: pointer;
             transition: all 0.3s ease;
         }
-        button:hover {
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        button:hover:enabled {
             background: #fff;
             color: #121212;
             border-color: #ccc;
         }
-        a {
-            color: #fff;
-            text-decoration: underline;
-        }
     </style>
+    <script>
+        function enableReturnButton() {
+            document.getElementById("returnButton").disabled = false;
+        }
+    </script>
 </head>
 <body>
     <h1>📷 Live Rover Camera</h1>
@@ -87,23 +85,25 @@ HTML = """
         <img src="/video" alt="Rover Camera Stream" />
     </div>
     <div class="buttons">
-        <form action="/start" method="post">
+        <form action="/start" method="post" onsubmit="enableReturnButton()">
             <button type="submit">▶ Start Rover</button>
         </form>
         <form action="/stop" method="post">
             <button type="submit">■ Stop Rover</button>
+        </form>
+        <form action="/return" method="post">
+            <button id="returnButton" type="submit" disabled>↩ Return</button>
         </form>
     </div>
 </body>
 </html>
 """
 
+
 def send_command(cmd):
     with serial.Serial('/dev/ttyUSB0', 9600, timeout=1) as ser:
         time.sleep(2)
         ser.write((cmd + '\n').encode())
-
-
 
 @app.route("/")
 def index():
@@ -140,6 +140,13 @@ def start_rover():
 def stop_rover():
     print("Rover stopped!")  # Add GPIO logic here
     send_command("STOP")
+    return ""
+
+@app.route("/return", methods=["POST"])
+def return_rover():
+    print("Rover returning to start position...")
+    send_command("RETURN")
+    push_notifications.send_email("Rover Alert", "Rover returning to base.")
     return ""
 
 if __name__ == "__main__":
