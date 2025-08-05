@@ -93,43 +93,73 @@ HTML = """
             color: #121212;
             border-color: #ccc;
         }
+        #notification {
+            margin-top: 20px;
+            font-size: 1.2em;
+            color: #00ff88;
+        }
     </style>
 </head>
 <body>
-    <h1> Live Rover Camera</h1>
+    <h1>Live Rover Camera</h1>
     <div class="status">Status: {{ status }}</div>
     <div class="video-container">
         <img src="/video" alt="Rover Camera Stream" />
     </div>
     <div class="buttons">
-        <form action="/start" method="post">
-            <button type="submit">▶ Start Rover</button>
-        </form>
-        <form action="/stop" method="post">
-            <button type="submit">■ Stop Rover</button>
-        </form>
-        <form action="/return" method="post">
-            <button type="submit">↩ Return to Station</button>
-        </form>
+        <button onclick="sendCommand('/start')">▶ Start Rover</button>
+        <button onclick="sendCommand('/stop')">■ Stop Rover</button>
+        <button onclick="sendCommand('/return')">↩ Return to Station</button>
     </div>
+    <div id="notification"></div>
 
-<script>
-    function updateStatus() {
-        fetch('/status')
-            .then(response => response.text())
-            .then(status => {
-                document.querySelector('.status').textContent = 'Status: ' + status;
-            })
-            .catch(error => console.error('Status update failed:', error));
-    }
+    <script>
+        function sendCommand(endpoint) {
+            fetch(endpoint, {
+                method: 'POST'
+            }).then(response => {
+                if (response.ok) {
+                    let message = "";
+                    if (endpoint === "/start") {
+                        message = "✅ Rover Started!";
+                    } else if (endpoint === "/stop") {
+                        message = "🛑 Rover Stopped.";
+                    } else if (endpoint === "/return") {
+                        message = "↩ Rover Returning to Station...";
+                    }
+                    showNotification(message);
+                } else {
+                    showNotification("⚠️ Command failed.", true);
+                }
+            }).catch(err => {
+                console.error("Fetch error:", err);
+                showNotification("❌ Error sending command.", true);
+            });
+        }
 
-    setInterval(updateStatus, 1000); // update every 1 second
-    updateStatus(); // initial call
-</script>
+        function showNotification(message, isError = false) {
+            const notify = document.getElementById("notification");
+            notify.textContent = message;
+            notify.style.color = isError ? "#ff4c4c" : "#00ff88";
+            setTimeout(() => {
+                notify.textContent = "";
+            }, 4000);
+        }
 
+        function updateStatus() {
+            fetch('/status')
+                .then(response => response.text())
+                .then(status => {
+                    document.querySelector('.status').textContent = 'Status: ' + status;
+                })
+                .catch(error => console.error('Status update failed:', error));
+        }
+
+        setInterval(updateStatus, 1000); // update every 1 second
+        updateStatus(); // initial call
+    </script>
 </body>
 </html>
-
 """
 
 # === Flask App ===
@@ -158,7 +188,7 @@ def video():
 @app.route("/start", methods=["POST"])
 def start_rover():
     print("Rover started!")
-    speak("a rover started")
+    speak("Rover started")
     arduino.write(b'S')
     push_notifications.send_email("Rover Alert", "Package on the way!!")
     return ""
@@ -166,13 +196,9 @@ def start_rover():
 @app.route("/stop", methods=["POST"])
 def stop_rover():
     print("Rover stopped!")
-    speak("a rover is stopping")
+    speak("Rover is stopping")
     arduino.write(b'F')
     return ""
-
-@app.route("/status")
-def get_status():
-    return rover_status
 
 @app.route("/return", methods=["POST"])
 def return_rover():
@@ -182,7 +208,11 @@ def return_rover():
     push_notifications.send_email("Rover Alert", "Rover returning to base.")
     return ""
 
-# === Update Rover Status from Arduino Serial ===
+@app.route("/status")
+def get_status():
+    return rover_status
+
+# === Serial Listener Thread ===
 def read_arduino():
     global rover_status
     while True:
@@ -194,14 +224,11 @@ def read_arduino():
             elif "ROVER EMPTY" in line:
                 rover_status = "EMPTY"
 
-# === Background Thread to Read Serial ===
 threading.Thread(target=read_arduino, daemon=True).start()
 
-# === Suppress Internal Error Page ===
 @app.errorhandler(500)
 def handle_500_error(e):
     return "", 204  # No redirect, no error page
 
-# === Run App ===
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
