@@ -21,7 +21,7 @@ def speak(text):
     threading.Thread(target=run).start()
 
 # === Arduino Setup ===
-arduino = serial.Serial('COM3', 9600, timeout=1)
+arduino = serial.Serial('COM6', 9600, timeout=1)
 time.sleep(2)
 
 # === Camera Setup ===
@@ -112,8 +112,24 @@ HTML = """
             <button type="submit">↩ Return to Station</button>
         </form>
     </div>
+
+<script>
+    function updateStatus() {
+        fetch('/status')
+            .then(response => response.text())
+            .then(status => {
+                document.querySelector('.status').textContent = 'Status: ' + status;
+            })
+            .catch(error => console.error('Status update failed:', error));
+    }
+
+    setInterval(updateStatus, 1000); // update every 1 second
+    updateStatus(); // initial call
+</script>
+
 </body>
 </html>
+
 """
 
 # === Flask App ===
@@ -153,6 +169,10 @@ def stop_rover():
     speak("a rover is stopping")
     arduino.write(b'F')
     return ""
+
+@app.route("/status")
+def get_status():
+    return rover_status
 
 @app.route("/return", methods=["POST"])
 def return_rover():
