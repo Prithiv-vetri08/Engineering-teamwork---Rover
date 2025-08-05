@@ -4,18 +4,33 @@ import push_notifications
 import threading
 import serial
 import time
+import pyttsx3
 
-# Arduino serial port (change to your port if needed)
+# === TTS Setup ===
+tts_engine = pyttsx3.init()
+tts_engine.setProperty('rate', 135)
+tts_engine.setProperty('volume', 1)
+
+def speak(text):
+    def run():
+        try:
+            tts_engine.say(text)
+            tts_engine.runAndWait()
+        except Exception as e:
+            print(f"TTS error: {e}")
+    threading.Thread(target=run).start()
+
+# === Arduino Setup ===
 arduino = serial.Serial('COM3', 9600, timeout=1)
-time.sleep(2)  # Allow Arduino to initialize
+time.sleep(2)
 
-# Camera index (adjust if needed)
-cap = cv2.VideoCapture(2)
+# === Camera Setup ===
+cap = cv2.VideoCapture(1)
 
-# Global rover status
+# === Global Rover Status ===
 rover_status = "Checking..."
 
-# HTML page with 3 buttons and live video
+# === HTML Interface ===
 HTML = """
 <!DOCTYPE html>
 <html lang="en">
@@ -43,15 +58,17 @@ HTML = """
             color: #00ff88;
         }
         .video-container {
+            width: 800px;
+            height: 600px;
             border: 4px solid #444;
             border-radius: 12px;
             overflow: hidden;
-            max-width: 90vw;
             box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
         }
         img {
             width: 100%;
-            height: auto;
+            height: 100%;
+            object-fit: cover;
             display: block;
         }
         .buttons {
@@ -68,6 +85,8 @@ HTML = """
             font-size: 1.1em;
             cursor: pointer;
             transition: all 0.3s ease;
+            width: 220px;
+            text-align: center;
         }
         button:hover {
             background: #fff;
@@ -77,7 +96,7 @@ HTML = """
     </style>
 </head>
 <body>
-    <h1>📷 Live Rover Camera</h1>
+    <h1> Live Rover Camera</h1>
     <div class="status">Status: {{ status }}</div>
     <div class="video-container">
         <img src="/video" alt="Rover Camera Stream" />
@@ -97,6 +116,7 @@ HTML = """
 </html>
 """
 
+# === Flask App ===
 app = Flask(__name__)
 
 @app.route("/")
@@ -122,6 +142,7 @@ def video():
 @app.route("/start", methods=["POST"])
 def start_rover():
     print("Rover started!")
+    speak("a rover started")
     arduino.write(b'S')
     push_notifications.send_email("Rover Alert", "Package on the way!!")
     return ""
@@ -129,29 +150,38 @@ def start_rover():
 @app.route("/stop", methods=["POST"])
 def stop_rover():
     print("Rover stopped!")
+    speak("a rover is stopping")
     arduino.write(b'F')
     return ""
 
 @app.route("/return", methods=["POST"])
 def return_rover():
     print("Rover returning to station...")
+    speak("Rover returning to station")
     arduino.write(b'R')
     push_notifications.send_email("Rover Alert", "Rover returning to base.")
     return ""
 
-# Thread to listen for serial updates and update status
+# === Update Rover Status from Arduino Serial ===
 def read_arduino():
     global rover_status
     while True:
         if arduino.in_waiting > 0:
             line = arduino.readline().decode().strip()
+            print("Arduino:", line)
             if "ROVER LOADED" in line:
                 rover_status = "LOADED"
             elif "ROVER EMPTY" in line:
                 rover_status = "EMPTY"
 
-# Start background thread for status
+# === Background Thread to Read Serial ===
 threading.Thread(target=read_arduino, daemon=True).start()
 
+# === Suppress Internal Error Page ===
+@app.errorhandler(500)
+def handle_500_error(e):
+    return "", 204  # No redirect, no error page
+
+# === Run App ===
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
