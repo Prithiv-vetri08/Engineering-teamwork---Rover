@@ -18,13 +18,13 @@ int distance;
 // === Motor Speeds ===
 int M1_Speed = 160;
 int M2_Speed = 160;
-int LeftRotationSpeed = 225;
+int LeftRotationSpeed = 240;
 int RightRotationSpeed = 225;
 
 // === Sensor Pins ===
 int LEFT_SENSOR, RIGHT_SENSOR; // 4 and 3
 bool lineFollowing = false;
-bool returning = true;
+bool returning = false;
 
 // === Load Detection ===
 bool lastLoadState = false;
@@ -214,10 +214,10 @@ void returnToStart() {
 
     // Spin left or right slowly to search
     left();  // You can change to right() depending on setup
-    delay(1000);
+    delay(1500);
 
     // Safety timeout
-    if (millis() - searchStart > 5000) {
+    if (millis() - searchStart > 10000) {
       Serial.println("LINE NOT FOUND AFTER ROTATION");
       Stop();
       return;
