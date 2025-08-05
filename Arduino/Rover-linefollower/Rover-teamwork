@@ -16,15 +16,15 @@ long duration;
 int distance;
 
 // === Motor Speeds ===
-int M1_Speed = 180;
-int M2_Speed = 180;
-int LeftRotationSpeed = 240;
-int RightRotationSpeed = 240;
+int M1_Speed = 160;
+int M2_Speed = 160;
+int LeftRotationSpeed = 225;
+int RightRotationSpeed = 225;
 
 // === Sensor Pins ===
 int LEFT_SENSOR, RIGHT_SENSOR; // 4 and 3
-bool lineFollowing = true;
-bool returning = false;
+bool lineFollowing = false;
+bool returning = true;
 
 // === Load Detection ===
 bool lastLoadState = false;
@@ -101,17 +101,16 @@ void loop() {
       left();
     } else if (RIGHT_SENSOR == 1 && LEFT_SENSOR == 1) {
       Stop();
+      Stop();
     }
-
+    delay(1);
   }
 
   // === Returning Logic Placeholder ===
   if (returning) {
-    // Add actual reverse-follow logic if needed
-    Stop();
-    Serial.println("RETURNING MODE: Implement reverse logic here.");
-    delay(500);
+    returnToStart();
   }
+
 }
 
 // === Movement Functions ===
@@ -152,10 +151,10 @@ void left() {
 }
 
 void Stop() {
-  digitalWrite(in1, LOW);
-  digitalWrite(in2, LOW);
-  digitalWrite(in3, LOW);
-  digitalWrite(in4, LOW);
+  digitalWrite(in1, HIGH);
+  digitalWrite(in2, HIGH);
+  digitalWrite(in3, HIGH);
+  digitalWrite(in4, HIGH);
   analogWrite(enA, 0);
   analogWrite(enB, 0);
 }
@@ -198,5 +197,54 @@ void checkLoadStatus() {
       stableLoadState = currentReading;
       Serial.println(stableLoadState ? "ROVER LOADED" : "ROVER EMPTY");
     }
+  }
+}
+// === Return Logic: 180° turn until line is detected, then follow until line ends ===
+void returnToStart() {
+  // Step 1: Rotate to find the line
+  int searchStart = millis();
+  while (true) {
+    LEFT_SENSOR = digitalRead(4);
+    RIGHT_SENSOR = digitalRead(3);
+
+    if (LEFT_SENSOR == 0 || RIGHT_SENSOR == 0) {
+      Serial.println("LINE FOUND - BEGIN FOLLOWING BACK");
+      break;  // Exit loop once line is found
+    }
+
+    // Spin left or right slowly to search
+    left();  // You can change to right() depending on setup
+    delay(1000);
+
+    // Safety timeout
+    if (millis() - searchStart > 5000) {
+      Serial.println("LINE NOT FOUND AFTER ROTATION");
+      Stop();
+      return;
+    }
+  }
+
+  // Step 2: Follow the line until both sensors go high (white surface)
+  while (true) {
+    LEFT_SENSOR = digitalRead(4);
+    RIGHT_SENSOR = digitalRead(3);
+
+    if (LEFT_SENSOR == 1 && RIGHT_SENSOR == 1) {
+      Serial.println("LINE ENDED - STOPPING");
+      Stop();
+      returning = false;
+      break;
+    }
+
+    if (RIGHT_SENSOR == 0 && LEFT_SENSOR == 0) {
+      forward();
+    } else if (RIGHT_SENSOR == 0 && LEFT_SENSOR == 1) {
+      right();
+    } else if (RIGHT_SENSOR == 1 && LEFT_SENSOR == 0) {
+      left();
+    } else {
+      Stop();
+    }
+    delay(5);
   }
 }
