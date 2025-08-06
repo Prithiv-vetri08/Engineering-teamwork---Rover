@@ -20,5 +20,4 @@ def send_email(subject, body):
     except Exception as e:
         print(f"Error: {e}")
 
-# Example use
-send_email("Rover Alert", "Obstacle detected 30 cm ahead!")
+
