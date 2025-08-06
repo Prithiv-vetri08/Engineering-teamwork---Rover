@@ -206,6 +206,7 @@ def return_rover():
     speak("Rover returning to station")
     arduino.write(b'R')
     push_notifications.send_email("Rover Alert", "Rover returning to base.")
+    print("Email sent?")
     return ""
 
 @app.route("/status")
