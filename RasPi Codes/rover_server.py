@@ -26,7 +26,7 @@ arduino = serial.Serial('COM6', 9600, timeout=1)
 time.sleep(2)
 
 # === Camera Setup ===
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(0 )
 
 # === Global Rover Status ===
 rover_status = "Checking..."
@@ -156,10 +156,50 @@ HTML = """
                 .catch(error => console.error('Status update failed:', error));
         }
 
-        <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+<script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
 <script>
-    const socket = io();
+    function sendCommand(endpoint) {
+        fetch(endpoint, {
+            method: 'POST'
+        }).then(response => {
+            if (response.ok) {
+                let message = "";
+                if (endpoint === "/start") {
+                    message = "✅ Rover Started!";
+                } else if (endpoint === "/stop") {
+                    message = "🛑 Rover Stopped.";
+                } else if (endpoint === "/return") {
+                    message = "↩ Rover Returning to Station...";
+                }
+                showNotification(message);
+            } else {
+                showNotification("⚠️ Command failed.", true);
+            }
+        }).catch(err => {
+            console.error("Fetch error:", err);
+            showNotification("❌ Error sending command.", true);
+        });
+    }
 
+    function showNotification(message, isError = false) {
+        const notify = document.getElementById("notification");
+        notify.textContent = message;
+        notify.style.color = isError ? "#ff4c4c" : "#00ff88";
+        setTimeout(() => {
+            notify.textContent = "";
+        }, 4000);
+    }
+
+    function updateStatus() {
+        fetch('/status')
+            .then(response => response.text())
+            .then(status => {
+                document.querySelector('.status').textContent = 'Status: ' + status;
+            })
+            .catch(error => console.error('Status update failed:', error));
+    }
+
+    const socket = io();
     socket.on('connect', () => {
         console.log("Connected to server via WebSocket");
     });
@@ -169,6 +209,7 @@ HTML = """
         showNotification("📡 Status Update: " + status);
     });
 </script>
+
 
     </script>
 </body>
@@ -220,7 +261,6 @@ def return_rover():
     speak("Rover returning to station")
     arduino.write(b'R')
     push_notifications.send_email("Rover Alert", "Rover returning to base.")
-    print("Email sent?")
     return ""
 
 @app.route("/status")
@@ -240,7 +280,6 @@ def read_arduino():
             elif "ROVER EMPTY" in line:
                 rover_status = "EMPTY"
                 socketio.emit('status_update', rover_status)
-
 threading.Thread(target=read_arduino, daemon=True).start()
 
 @app.errorhandler(500)
