@@ -16,14 +16,16 @@ long duration;
 int distance;
 
 // === Motor Speeds ===
-int M1_Speed = 160;
-int M2_Speed = 160;
-int LeftRotationSpeed = 240;
-int RightRotationSpeed = 225;
+int baseSpeed = 135;
+int M1_Speed = baseSpeed;
+int M2_Speed = baseSpeed;
+int LeftRotationSpeed = baseSpeed + 65;   // turning speeds for sharp left/right
+int RightRotationSpeed = baseSpeed + 65;
+
 
 // === Sensor Pins ===
 int LEFT_SENSOR, RIGHT_SENSOR; // 4 and 3
-bool lineFollowing = false;
+bool lineFollowing = true;
 bool returning = false;
 
 // === Load Detection ===
@@ -79,6 +81,20 @@ void loop() {
     }
   }
 
+  
+  // Adjust speeds based on mode
+  if (lineFollowing) {
+    M1_Speed = baseSpeed + 10;
+    M2_Speed = baseSpeed  + 10;
+    LeftRotationSpeed = baseSpeed + 95;
+    RightRotationSpeed = baseSpeed + 85;
+  } else if (returning) {
+    M1_Speed = baseSpeed ;
+    M2_Speed = baseSpeed  ;
+    LeftRotationSpeed = baseSpeed + 85;
+    RightRotationSpeed = baseSpeed + 75;
+  }
+
   // Ultrasonic Load Detection
   distance = getDistance();
   bool currentLoadState = (distance > 0 && distance < 20);
@@ -88,7 +104,7 @@ void loop() {
   }
   checkLoadStatus();
 
-  // === Line Following Logic (Your Code) ===
+  // === Line Following Logic ===
   if (lineFollowing) {
     LEFT_SENSOR = digitalRead(4);
     RIGHT_SENSOR = digitalRead(3);
@@ -103,14 +119,12 @@ void loop() {
       Stop();
       Stop();
     }
-    delay(1);
   }
 
-  // === Returning Logic Placeholder ===
+  // === Return Mode Logic ===
   if (returning) {
     returnToStart();
   }
-
 }
 
 // === Movement Functions ===
@@ -199,6 +213,7 @@ void checkLoadStatus() {
     }
   }
 }
+
 // === Return Logic: 180° turn until line is detected, then follow until line ends ===
 void returnToStart() {
   // Step 1: Rotate to find the line
@@ -212,11 +227,9 @@ void returnToStart() {
       break;  // Exit loop once line is found
     }
 
-    // Spin left or right slowly to search
     left();  // You can change to right() depending on setup
-    delay(1500);
+    delay(1850);
 
-    // Safety timeout
     if (millis() - searchStart > 10000) {
       Serial.println("LINE NOT FOUND AFTER ROTATION");
       Stop();
