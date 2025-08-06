@@ -1,4 +1,5 @@
 from flask import Flask, render_template_string, Response
+from flask_socketio import SocketIO, emit
 import cv2
 import push_notifications
 import threading
@@ -155,8 +156,20 @@ HTML = """
                 .catch(error => console.error('Status update failed:', error));
         }
 
-        setInterval(updateStatus, 1000); // update every 1 second
-        updateStatus(); // initial call
+        <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+<script>
+    const socket = io();
+
+    socket.on('connect', () => {
+        console.log("Connected to server via WebSocket");
+    });
+
+    socket.on('status_update', status => {
+        document.querySelector('.status').textContent = 'Status: ' + status;
+        showNotification("📡 Status Update: " + status);
+    });
+</script>
+
     </script>
 </body>
 </html>
@@ -164,6 +177,7 @@ HTML = """
 
 # === Flask App ===
 app = Flask(__name__)
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 @app.route("/")
 def index():
@@ -222,8 +236,10 @@ def read_arduino():
             print("Arduino:", line)
             if "ROVER LOADED" in line:
                 rover_status = "LOADED"
+                socketio.emit('status_update', rover_status)
             elif "ROVER EMPTY" in line:
                 rover_status = "EMPTY"
+                socketio.emit('status_update', rover_status)
 
 threading.Thread(target=read_arduino, daemon=True).start()
 
